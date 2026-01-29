@@ -19,6 +19,7 @@ Usage:
 """
 
 import asyncio
+import gc
 import os
 import subprocess
 import sys
@@ -118,12 +119,13 @@ def _dump_database_state(session, label: str = ""):
 #   3. During run: count should never exceed baseline + 11 (1 orchestrator + 10 agents)
 #   4. After stop: should return to baseline
 # =============================================================================
-MAX_PARALLEL_AGENTS = 5
-MAX_TOTAL_AGENTS = 10
-DEFAULT_CONCURRENCY = 3
+MAX_PARALLEL_AGENTS = 2
+MAX_TOTAL_AGENTS = 4
+DEFAULT_CONCURRENCY = 1
 POLL_INTERVAL = 5  # seconds between checking for ready features
 MAX_FEATURE_RETRIES = 3  # Maximum times to retry a failed feature
 INITIALIZER_TIMEOUT = 1800  # 30 minutes timeout for initializer
+CODING_AGENT_TIMEOUT = 1200  # 20 minutes timeout for coding agents
 
 
 class ParallelOrchestrator:
@@ -835,6 +837,9 @@ class ParallelOrchestrator:
 
         # Signal main loop that an agent slot is available
         self._signal_agent_completed()
+        
+        # Free memory after agent completion
+        gc.collect()
 
         # NOTE: Testing agents are now spawned in start_feature() when coding agents START,
         # not here when they complete. This ensures 1:1 ratio and proper termination.
